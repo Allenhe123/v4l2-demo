@@ -316,7 +316,7 @@ static void init_mmap(void) {
  
 	CLEAR(req);
  
-	req.count = 4;
+	req.count = 4;  // 缓存队列大小
 	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_MMAP;
  
@@ -374,7 +374,7 @@ static void init_userp(unsigned int buffer_size) {
  
 	CLEAR(req);
  
-	req.count = 4;
+	req.count = 4;   // 缓存队列大小
 	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_USERPTR;
  
@@ -477,8 +477,8 @@ static void init_device(void) {
 	CLEAR(fmt);
 	//输出视频格式fmt设置
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	fmt.fmt.pix.width = 640;
-	fmt.fmt.pix.height = 480;
+	fmt.fmt.pix.width = 640;    // 16的倍数
+	fmt.fmt.pix.height = 480;   // 16的倍数
 	fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
 	fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
  
@@ -530,7 +530,8 @@ static void open_device(void) {
 		fprintf(stderr, "%s is no device/n", dev_name);
 		exit(EXIT_FAILURE);
 	}
- 
+
+	// 非阻塞模式打开设备
 	fd = open(dev_name, O_RDWR /* required */| O_NONBLOCK, 0);
  
 	if (-1 == fd) {
@@ -620,3 +621,8 @@ int main(int argc, char ** argv) {
 	return 0;
 }
 
+/*
+
+
+
+*/
