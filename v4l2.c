@@ -368,7 +368,8 @@ static void init_userp(unsigned int buffer_size) {
 	struct v4l2_requestbuffers req;
 	unsigned int page_size;
  
-	page_size = getpagesize();
+	// page_size = getpagesize();
+	page_size = sysconf(_SC_PAGESIZE);
 	buffer_size = (buffer_size + page_size - 1) & ~(page_size - 1);
  
 	CLEAR(req);
@@ -396,8 +397,10 @@ static void init_userp(unsigned int buffer_size) {
  
 	for (n_buffers = 0; n_buffers < 4; ++n_buffers) {
 		buffers[n_buffers].length = buffer_size;
-		buffers[n_buffers].start = memalign(/* boundary */page_size,
-				buffer_size);
+
+		void *memptr = NULL;
+		if (posix_memalign(&memptr, page_size, buffer_size) == 0)
+			buffers[n_buffers].start = memptr;
  
 		if (!buffers[n_buffers].start) {
 			fprintf(stderr, "Out of memory/n");
@@ -413,9 +416,10 @@ static void init_device(void) {
 	struct v4l2_format fmt;
 	unsigned int min;
  
+	//使用 VIDIOC_QUERYCAP 命令来获得当前设备的各个属性，查看设备对各项功能的支持程度
 	if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &cap)) {
 		if (EINVAL == errno) {
-			fprintf(stderr, "%s is no V4L2 device/n", dev_name);
+			fprintf(stderr, "%s is no V4L2 device\n", dev_name);
 			exit(EXIT_FAILURE);
 		} else {
 			errno_exit("VIDIOC_QUERYCAP");
@@ -423,14 +427,14 @@ static void init_device(void) {
 	}
  
 	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
-		fprintf(stderr, "%s is no video capture device/n", dev_name);
+		fprintf(stderr, "%s is no video capture device\n", dev_name);
 		exit(EXIT_FAILURE);
 	}
  
 	switch (io) {
 	case IO_METHOD_READ:
 		if (!(cap.capabilities & V4L2_CAP_READWRITE)) {
-			fprintf(stderr, "%s does not support read i/o/n", dev_name);
+			fprintf(stderr, "%s does not support read i/o\n", dev_name);
 			exit(EXIT_FAILURE);
 		}
  
@@ -439,7 +443,7 @@ static void init_device(void) {
 	case IO_METHOD_MMAP:
 	case IO_METHOD_USERPTR:
 		if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
-			fprintf(stderr, "%s does not support streaming i/o/n", dev_name);
+			fprintf(stderr, "%s does not support streaming i/o\n", dev_name);
 			exit(EXIT_FAILURE);
 		}
  
@@ -451,7 +455,7 @@ static void init_device(void) {
 	CLEAR(cropcap);
  
 	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
- 
+	// 获取修剪能力cropcap，设置输出景象crop
 	if (0 == xioctl(fd, VIDIOC_CROPCAP, &cropcap)) {
 		crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		crop.c = cropcap.defrect; /* reset to default */
@@ -471,7 +475,7 @@ static void init_device(void) {
 	}
  
 	CLEAR(fmt);
- 
+	//输出视频格式fmt设置
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	fmt.fmt.pix.width = 640;
 	fmt.fmt.pix.height = 480;
